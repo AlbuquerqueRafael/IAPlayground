@@ -12,10 +12,12 @@ public class EnemyPosition {
   }
 
   public String getEnemyPositionX() {
-    return String.valueOf((int) enemyPositionX);
+    int quantitazedValue = Util.quantitazeValue(this.enemyPositionX);
+    return String.valueOf(quantitazedValue);
   }
 
   public String getEnemyPositionY() {
-    return String.valueOf((int) enemyPositionY);
+    int quantitazedValue = Util.quantitazeValue(this.enemyPositionY);
+    return String.valueOf(quantitazedValue);
   }
 }

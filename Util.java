@@ -7,14 +7,14 @@ import java.util.Random;
 
 public class Util {
 
-  public static Double getMaxQ(List<Double> defaultList, Map<String, ArrayList<Double>> qTable,
+  public static Double getMaxQ(ArrayList<Double> defaultList, HashMap<String, Object> qTable,
                                String comb) {
     if (qTable.get(comb) == null) {
       qTable.put(comb, new ArrayList<Double>(defaultList));
       return 0.0;
     } else {
       double max = Integer.MIN_VALUE;
-      List<Double> aux = qTable.get(comb);
+      ArrayList<Double> aux = ((ArrayList<Double>) qTable.get(comb));
 
       for(int i = 0; i < aux.size(); i++) {
         if (aux.get(i) > max) {
@@ -26,7 +26,7 @@ public class Util {
     }
   }
 
-  public static int getBestAction(List<Double> defaultList, Map<String, ArrayList<Double>> qTable,
+  public static int getBestAction(List<Double> defaultList, HashMap<String, Object> qTable,
                                   String comb) {
     if (qTable.get(comb) == null) {
       qTable.put(comb, new ArrayList<Double>(defaultList));
@@ -34,7 +34,7 @@ public class Util {
     } else {
       double max = Integer.MIN_VALUE;
       int action = 0;
-      List<Double> aux = qTable.get(comb);
+      ArrayList<Double> aux = ((ArrayList<Double>) qTable.get(comb));
 
       for(int i = 0; i < aux.size(); i++) {
         if (aux.get(i) > max) {
@@ -49,8 +49,12 @@ public class Util {
 
   public static int getRandom() {
     Random rand = new Random();
-    int  n = rand.nextInt(3) + 0;
+    int  n = rand.nextInt(8) + 0;
 
     return n;
+  }
+
+  public static int quantitazeValue(double value) {
+    return (int) (value / 100.0);
   }
 }
