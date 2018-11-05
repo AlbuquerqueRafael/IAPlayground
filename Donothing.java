@@ -24,7 +24,7 @@ public class Donothing extends AdvancedRobot {
 	private int numActions = 8;
 	private int moveDirection = 1;
 	private ArrayList<Double> defaultList;
-	private boolean explore = true;
+	private boolean explore = false;
 	private int currentAction = 0;
 	private HashMap<String, Object> qTable;
 	private boolean firstTime = true;
@@ -182,15 +182,10 @@ public class Donothing extends AdvancedRobot {
     try {
       FileInputStream fos = new FileInputStream(filename);
       ObjectInputStream ois = new ObjectInputStream(fos);
-      System.out.println(ois.readObject().getClass());
       qTable = (HashMap<String, Object>) ois.readObject();
-			System.out.println(ois.readObject().getClass());
       ois.close();
     } catch(Exception e) {
-      System.out.println("vem");
-      System.out.println(e.toString());
-			System.out.println(e.getMessage());
-
+			System.out.println("load problems");
       qTable = new HashMap<String, Object>();
     }
 
@@ -201,7 +196,6 @@ public class Donothing extends AdvancedRobot {
       RobocodeFileOutputStream fos = new RobocodeFileOutputStream(filename);
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       oos.writeObject(qTable);
-      System.out.println("vem");
       oos.close();
     } catch(Exception e) {
       System.out.println("save");
