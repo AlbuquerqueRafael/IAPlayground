@@ -7,44 +7,55 @@ import java.util.Random;
 
 public class Util {
 
-  public static Double getMaxQ(ArrayList<Double> defaultList, HashMap<String, Object> qTable,
-                               String comb) {
-    if (qTable.get(comb) == null) {
-      qTable.put(comb, new ArrayList<Double>(defaultList));
-      return 0.0;
-    } else {
-      double max = Integer.MIN_VALUE;
-      ArrayList<Double> aux = ((ArrayList<Double>) qTable.get(comb));
+  public static Double getMaxQ(HashMap<String, Double> qTable,
+                               String comb, int numActions) {
 
-      for(int i = 0; i < aux.size(); i++) {
-        if (aux.get(i) > max) {
-          max = aux.get(i);
+    double max = Integer.MIN_VALUE;
+
+    for(int i = 0; i < numActions; i++) {
+      String combi[] = comb.split("-");
+      combi[combi.length-1] = new Integer(i).toString();
+      String joined1 = String.join("-", combi);
+
+      if (qTable.get(joined1) == null) {
+        qTable.put(joined1, 0.0);
+      } else {
+        if (qTable.get(joined1) > max) {
+          max = qTable.get(joined1);
         }
       }
-
-      return max;
     }
+
+    if (max == Integer.MIN_VALUE) {
+      return 0.0;
+    }
+
+    return max;
+
   }
 
-  public static int getBestAction(List<Double> defaultList, HashMap<String, Object> qTable,
-                                  String comb) {
-    if (qTable.get(comb) == null) {
-      qTable.put(comb, new ArrayList<Double>(defaultList));
-      return 0;
-    } else {
-      double max = Integer.MIN_VALUE;
-      int action = 0;
-      ArrayList<Double> aux = ((ArrayList<Double>) qTable.get(comb));
+  public static int getBestAction(HashMap<String, Double> qTable,
+                                  String comb, int numActions) {
 
-      for(int i = 0; i < aux.size(); i++) {
-        if (aux.get(i) > max) {
+    double max = Integer.MIN_VALUE;
+    int action = 0;
+
+    for(int i = 0; i < numActions; i++) {
+      String combi[] = comb.split("-");
+      combi[combi.length-1] = new Integer(i).toString();
+      String joined1 = String.join("-", combi);
+
+      if (qTable.get(joined1) == null) {
+        qTable.put(joined1, 0.0);
+      } else {
+        if (qTable.get(joined1) > max) {
           action = i;
-          max = aux.get(i);
+          max = qTable.get(joined1);
         }
       }
-
-      return action;
     }
+
+    return action;
   }
 
   public static int getRandom() {

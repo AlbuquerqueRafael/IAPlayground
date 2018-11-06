@@ -6,47 +6,33 @@ import java.util.Map;
 import java.util.List;
 import java.lang.Number;
 import java.util.HashMap;
-import java.util.ArrayList;
 import teste.EnemyPosition;
 import teste.SaveAndLoad;
 import teste.Util;
-import java.io.FileOutputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
-import java.io.FileInputStream;
-import robocode.util.Utils;
 
 public class Donothing extends AdvancedRobot {
 
 	private int reward = 0;
-	private int maxXValue = 800;
 	private int turnValue = 360;
 	private int numActions = 8;
-	private int moveDirection = 1;
-	private ArrayList<Double> defaultList;
-	private boolean explore = false;
+	private boolean explore = true;
 	private int currentAction = 0;
-	private HashMap<String, Object> qTable;
+	private HashMap<String, Double> qTable;
 	private boolean firstTime = true;
 	private boolean actionTime = true;
 	private double currentQValue = 0;
-	private int count = 0;
 
-
-	public Donothing() {
-		defaultList = new ArrayList<Double>();
-
-		for(int i = 0; i < numActions; i++) {
-			defaultList.add(0.0);
-		}
-	}
 
 	/**
 	 * run: Donothing's default behavior
 	 */
 	public void run() {
 
-		load(getDataFile("t.txt").toString());
+		try {
+			qTable = SaveAndLoad.load(getDataFile("t.txt").toString());
+		} catch(Exception e) {
+			System.out.println("error");
+		}
 
 		// Robot main loop
 		while(true) {
@@ -68,23 +54,32 @@ public class Donothing extends AdvancedRobot {
 		double x = getX();
 		double y = getY();
 		EnemyPosition enemyPosition = new EnemyPosition(angle, e.getDistance(), x, y);
-
 		String comb = String.valueOf(Util.quantitazeValue(x)) + '-'
 									+ String.valueOf(Util.quantitazeValue(y))
 									+ '-'
 									+ enemyPosition.getEnemyPositionX() + '-'
-									+ enemyPosition.getEnemyPositionY();
+									+ enemyPosition.getEnemyPositionY() + '-'
+									+ currentAction;
+
 
 		if (actionTime) {
+			 currentAction = getAction(comb);
+
+			 comb = String.valueOf(Util.quantitazeValue(x)) + '-'
+							+ String.valueOf(Util.quantitazeValue(y))
+							+ '-'
+							+ enemyPosition.getEnemyPositionX() + '-'
+							+ enemyPosition.getEnemyPositionY() + '-'
+							+ currentAction;
+
 			if (qTable.get(comb) == null) {
 				currentQValue = 0;
-				qTable.put(comb, new ArrayList<Double>(defaultList));
+				qTable.put(comb, 0.0);
 			} else {
-				currentQValue = ((ArrayList<Double>) qTable.get(comb)).get(currentAction);
+				currentQValue = qTable.get(comb);
 			}
 
 			reward = 0;
-			currentAction = getAction(comb);
 			doAction(currentAction);
 			this.actionTime = false;
 		} else {
@@ -96,7 +91,7 @@ public class Donothing extends AdvancedRobot {
 
 
 	public void	onRoundEnded(RoundEndedEvent event) {
-		save(getDataFile("t.txt").toString());
+		SaveAndLoad.save(getDataFile("t.txt").toString(), qTable);
 	}
 
 
@@ -119,7 +114,7 @@ public class Donothing extends AdvancedRobot {
 		if (explore) {
 			return Util.getRandom();
 		} else {
-			return Util.getBestAction(defaultList, qTable, comb);
+			return Util.getBestAction(qTable, comb, numActions);
 		}
 
 	}
@@ -147,26 +142,37 @@ public class Donothing extends AdvancedRobot {
 		}
 
 		double interval = currentHeading - nextHeading;
-		double radians = interval * Math.PI / 180;
-
-		if (interval > 0) {
-			setTurnLeft(interval);
-			waitFor(new TurnCompleteCondition(this));
-		} else {
-			setTurnRight(interval*(-1));
-			waitFor(new TurnCompleteCondition(this));
-		}
-
+		executeTurn(interval, currentHeading, nextHeading);
 		setAhead(100);
 		waitFor(new MoveCompleteCondition(this));
 		turnValue = 360;
 	}
 
+	private void executeTurn(double interval, double currentHeading, double nextHeading) {
+		if (interval > 0) {
+			if (interval > 180) {
+				setTurnRight((360 - currentHeading + nextHeading));
+			} else {
+				setTurnLeft(interval);
+			}
+			waitFor(new TurnCompleteCondition(this));
+		} else {
+			interval = interval*(-1);
+			if (interval > 180) {
+				setTurnLeft((360 - nextHeading + currentHeading));
+			} else {
+				setTurnRight(interval);
+			}
+
+			waitFor(new TurnCompleteCondition(this));
+		}
+	}
+
 	public void calculateQLearning(String comb, double currentQValue) {
-		double max = Util.getMaxQ(defaultList, qTable, comb);
+		double max = Util.getMaxQ(qTable, comb, numActions);
 		double deltaQ = 0.1 * (reward + 0.9*max - currentQValue);
 		double qLearning = currentQValue + deltaQ;
-		((ArrayList<Double>) qTable.get(comb)).set(currentAction, qLearning);
+		qTable.put(comb, qLearning);
 	}
 
 
@@ -176,32 +182,5 @@ public class Donothing extends AdvancedRobot {
 	public void onHitWall(HitWallEvent e) {
 		reward -= 3;
 	}
-
-	public void load(String filename) {
-
-    try {
-      FileInputStream fos = new FileInputStream(filename);
-      ObjectInputStream ois = new ObjectInputStream(fos);
-      qTable = (HashMap<String, Object>) ois.readObject();
-      ois.close();
-    } catch(Exception e) {
-			System.out.println("load problems");
-      qTable = new HashMap<String, Object>();
-    }
-
-  }
-
-  public void save(String filename) {
-    try {
-      RobocodeFileOutputStream fos = new RobocodeFileOutputStream(filename);
-      ObjectOutputStream oos = new ObjectOutputStream(fos);
-      oos.writeObject(qTable);
-      oos.close();
-    } catch(Exception e) {
-      System.out.println("save");
-      System.out.println(e.getMessage());
-    }
-  }
-
 
 }

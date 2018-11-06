@@ -1,47 +1,51 @@
 package teste;
-import java.io.FileOutputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
-import java.io.FileInputStream;
-import java.io.File;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ArrayList;
-import java.util.List;
 import robocode.*;
 
 
 public class SaveAndLoad {
 
-  public static Map<String, List<Double>> load(String filename) {
-    Map<String, List<Double>> auxQTable;
+  public static HashMap<String, Double> load(String filename) throws IOException {
+    HashMap<String, Double> qTable = new HashMap<String, Double>();
+    BufferedReader reader = null;
 
     try {
-      FileInputStream fos = new FileInputStream(filename);
-      ObjectInputStream ois = new ObjectInputStream(fos);
-      System.out.println(ois.readObject());
-      auxQTable = (Map<String, List<Double>>) ois.readObject();
-      ois.close();
-    } catch(Exception e) {
-      System.out.println("vem");
-      System.out.println(e.getStackTrace());
+      reader = new BufferedReader(new FileReader(filename));
+      String line = reader.readLine();
 
-      auxQTable = new HashMap<String, List<Double>>();
+      while (line != null) {
+        String splitLine[] = line.split("/");
+        qTable.put(splitLine[0], Double.parseDouble(splitLine[1]));
+        line= reader.readLine();
+      }
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      reader.close();
     }
 
-    return auxQTable;
+    return qTable;
+
   }
 
-  public static void save(Map<String, List<Double>> qTable, String filename) {
+  public static void save(String filename, HashMap<String, Double> qTable) {
+    PrintStream ps = null;
     try {
-      RobocodeFileOutputStream fos = new RobocodeFileOutputStream(filename);
-      ObjectOutputStream oos = new ObjectOutputStream(fos);
-      oos.writeObject(qTable);
-      System.out.println("vem");
-      oos.close();
-    } catch(Exception e) {
-      System.out.println("save");
-      System.out.println(e.getMessage());
+      ps = new PrintStream(new RobocodeFileOutputStream(filename));
+      for (Map.Entry<String, Double> entry : qTable.entrySet()) {
+        ps.println(entry.getKey()+"/"+entry.getValue());
+      }
+    } catch (IOException e) {
+      System.out.println("error");
+    } finally {
+      ps.flush();
+      ps.close();
     }
   }
 }
