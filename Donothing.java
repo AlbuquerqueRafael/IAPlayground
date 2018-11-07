@@ -9,19 +9,25 @@ import java.util.HashMap;
 import teste.EnemyPosition;
 import teste.SaveAndLoad;
 import teste.Util;
+import teste.UtilActions;
 
 public class Donothing extends AdvancedRobot {
 
 	private int reward = 0;
+	private int rewardShot = 0;
 	private int turnValue = 360;
 	private int numActions = 8;
-	private boolean explore = true;
+	private int numShotActions = 15;
+	private boolean explore = false;
 	private int currentAction = 0;
+	private int currentShotAction = 0;
 	private HashMap<String, Double> qTable;
+	private HashMap<String, Double> qShotTable;
 	private boolean firstTime = true;
 	private boolean actionTime = true;
 	private double currentQValue = 0;
-
+	private double currentQShotValue = 0;
+	private boolean actionShot = true;
 
 	/**
 	 * run: Donothing's default behavior
@@ -29,7 +35,8 @@ public class Donothing extends AdvancedRobot {
 	public void run() {
 
 		try {
-			qTable = SaveAndLoad.load(getDataFile("t.txt").toString());
+			qShotTable = SaveAndLoad.load(getDataFile("qShotTable.txt").toString());
+			qTable = SaveAndLoad.load(getDataFile("qTable.txt").toString());
 		} catch(Exception e) {
 			System.out.println("error");
 		}
@@ -45,6 +52,7 @@ public class Donothing extends AdvancedRobot {
 	 * onScannedRobot: What to do when you see another robot
 	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
+		double radarHeading = getRadarHeading();
 		setTurnRadarLeft(0);
 		waitFor(new RadarTurnCompleteCondition(this));
 
@@ -54,44 +62,58 @@ public class Donothing extends AdvancedRobot {
 		double x = getX();
 		double y = getY();
 		EnemyPosition enemyPosition = new EnemyPosition(angle, e.getDistance(), x, y);
-		String comb = String.valueOf(Util.quantitazeValue(x)) + '-'
-									+ String.valueOf(Util.quantitazeValue(y))
-									+ '-'
-									+ enemyPosition.getEnemyPositionX() + '-'
-									+ enemyPosition.getEnemyPositionY() + '-'
-									+ currentAction;
+		double distance = Math.sqrt(Math.pow(x-enemyPosition.getEnemyPositionX(), 2)
+																+Math.pow(y-enemyPosition.getEnemyPositionY(), 2));
 
+		String combShot = Util.getCurrentShotComb(enemyPosition, currentAction, distance);
+		String comb = Util.getCurrentComb(enemyPosition, currentAction, x, y);
 
 		if (actionTime) {
-			 currentAction = getAction(comb);
+			currentShotAction = getAction(combShot, qShotTable, numShotActions);
+			currentAction = getAction(comb, qTable, numActions);
 
-			 comb = String.valueOf(Util.quantitazeValue(x)) + '-'
-							+ String.valueOf(Util.quantitazeValue(y))
-							+ '-'
-							+ enemyPosition.getEnemyPositionX() + '-'
-							+ enemyPosition.getEnemyPositionY() + '-'
-							+ currentAction;
+			combShot = Util.getCurrentShotComb(enemyPosition, currentAction, distance);
+			comb = Util.getCurrentComb(enemyPosition, currentAction, x, y);
 
-			if (qTable.get(comb) == null) {
-				currentQValue = 0;
-				qTable.put(comb, 0.0);
-			} else {
-				currentQValue = qTable.get(comb);
-			}
+			currentQShotValue = getCurrentQValue(qShotTable, combShot);
+			currentQValue = getCurrentQValue(qTable, comb);
 
+			rewardShot = 0;
 			reward = 0;
+			
+			this.actionShot = true;
+			doShotAction(currentShotAction, radarHeading);
 			doAction(currentAction);
 			this.actionTime = false;
 		} else {
-			calculateQLearning(comb, currentQValue);
+			if (actionShot) {
+				calculateQLearning(combShot, currentQShotValue, numShotActions, qShotTable, rewardShot);
+			}
+
+			calculateQLearning(comb, currentQValue, numActions, qTable, reward);
 			this.actionTime = true;
 			turnValue = 360;
 		}
 	}
 
+	public double getCurrentQValue(HashMap<String, Double> map, String comb) {
+		double currentQValue;
+
+		if (map.get(comb) == null) {
+			currentQValue = 0;
+			map.put(comb, 0.0);
+		} else {
+			currentQValue = map.get(comb);
+		}
+
+		return currentQValue;
+	}
+
 
 	public void	onRoundEnded(RoundEndedEvent event) {
-		SaveAndLoad.save(getDataFile("t.txt").toString(), qTable);
+		SaveAndLoad.save(getDataFile("qShotTable.txt").toString(), qShotTable);
+		SaveAndLoad.save(getDataFile("qTable.txt").toString(), qTable);
+
 	}
 
 
@@ -102,21 +124,68 @@ public class Donothing extends AdvancedRobot {
 		reward -= 3;
 	}
 
-	public void onBulletHit(BulletHitEvent e) {
-		//reward += 3;
-	}
-
 	public void OnHitRobot(HitRobotEvent evnt) {
 		reward -= 3;
 	}
 
-	public int getAction(String comb) {
+	public int getAction(String comb, HashMap<String, Double> table, int nA) {
 		if (explore) {
-			return Util.getRandom();
+			return Util.getRandom(nA);
 		} else {
-			return Util.getBestAction(qTable, comb, numActions);
+			return Util.getBestAction(table, comb, nA);
+		}
+	}
+
+	public void doShotAction(int action, double radarHeading) {
+		double gunHeading = getGunHeading();
+		double nextGunHeading = 0;
+		double firePower = 0;
+
+		double data[] = UtilActions.getHeadingAndFireAction(action);
+		firePower = data[0];
+		nextGunHeading = data[1];
+
+		if ((radarHeading + nextGunHeading) > 360) { // Ex: Current radar: 355
+			 																					 //     Next Gun Heading: 15(Move 15 degrees)
+																								 //			New angle = 370 = 10 degrees
+			radarHeading = 360 - radarHeading + nextGunHeading;
+		} else if ((radarHeading + nextGunHeading) < 0) { // Same example. But imagine this time a next Gun Heading negative
+			radarHeading = radarHeading + nextGunHeading + 360;
+		} else {
+			radarHeading += nextGunHeading;
 		}
 
+
+		double interval = gunHeading - radarHeading;
+		executeTurnGun(interval, gunHeading, radarHeading);
+		Bullet bullet = setFireBullet(firePower);
+
+		if (bullet == null) {
+		//	turnValue = 360;
+			this.actionShot = false;
+		}
+
+	//
+	}
+
+	private void executeTurnGun(double interval, double currentHeading, double nextHeading) {
+		if (interval > 0) {
+			if (interval > 180) {
+				setTurnGunRight((360 - currentHeading + nextHeading));
+			} else {
+				setTurnGunLeft(interval);
+			}
+			waitFor(new GunTurnCompleteCondition(this));
+		} else {
+			interval = interval*(-1);
+			if (interval > 180) {
+				setTurnGunLeft((360 - nextHeading + currentHeading));
+			} else {
+				setTurnGunRight(interval);
+			}
+
+			waitFor(new GunTurnCompleteCondition(this));
+		}
 	}
 
 	public void doAction(int action) {
@@ -168,17 +237,29 @@ public class Donothing extends AdvancedRobot {
 		}
 	}
 
-	public void calculateQLearning(String comb, double currentQValue) {
-		double max = Util.getMaxQ(qTable, comb, numActions);
-		double deltaQ = 0.1 * (reward + 0.9*max - currentQValue);
+	public void calculateQLearning(String comb, double currentQValue, int nA,
+																 HashMap<String, Double> table, double rew) {
+		double max = Util.getMaxQ(table, comb, nA);
+		double deltaQ = 0.1 * (rew + 0.9*max - currentQValue);
 		double qLearning = currentQValue + deltaQ;
-		qTable.put(comb, qLearning);
+		table.put(comb, qLearning);
 	}
 
+	public void onBulletHitBullet(BulletHitBulletEvent event) {
+		rewardShot += 3;
+	//	turnValue = 360;
+	}
 
-	/**
-	 * onHitWall: What to do when you hit a wall
-	 */
+	public void onBulletHit(BulletHitEvent event) {
+		rewardShot += 3;
+	//	turnValue = 360;
+	}
+
+	public void onBulletMissed(BulletMissedEvent event) {
+		rewardShot -= 3;
+	//	turnValue = 360;
+	}
+
 	public void onHitWall(HitWallEvent e) {
 		reward -= 3;
 	}

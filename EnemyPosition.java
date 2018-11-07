@@ -7,17 +7,25 @@ public class EnemyPosition {
   private double enemyPositionY;
 
   public EnemyPosition(double angle, double distance, double x, double y) {
-    this.enemyPositionX = (int)(x + Math.sin(angle) * distance);
-    this.enemyPositionY = (int)(y + Math.cos(angle) * distance);
+    this.enemyPositionX = (x + Math.sin(angle) * distance);
+    this.enemyPositionY = (y + Math.cos(angle) * distance);
   }
 
-  public String getEnemyPositionX() {
+  public String getEnemyPositionXToString() {
     int quantitazedValue = Util.quantitazeValue(this.enemyPositionX);
     return String.valueOf(quantitazedValue);
   }
 
-  public String getEnemyPositionY() {
+  public String getEnemyPositionYToString() {
     int quantitazedValue = Util.quantitazeValue(this.enemyPositionY);
     return String.valueOf(quantitazedValue);
+  }
+
+  public double getEnemyPositionX() {
+    return this.enemyPositionX;
+  }
+
+  public double getEnemyPositionY() {
+    return this.enemyPositionY;
   }
 }

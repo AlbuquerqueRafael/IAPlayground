@@ -58,14 +58,32 @@ public class Util {
     return action;
   }
 
-  public static int getRandom() {
+  public static int getRandom(int numActions) {
     Random rand = new Random();
-    int  n = rand.nextInt(8) + 0;
+    int  n = rand.nextInt(numActions) + 0;
 
     return n;
   }
 
   public static int quantitazeValue(double value) {
     return (int) (value / 100.0);
+  }
+
+  public static String getCurrentComb(EnemyPosition ep, int currentAction, double x, double y) {
+    String comb =  String.valueOf(Util.quantitazeValue(x)) + '-'
+                   + String.valueOf(Util.quantitazeValue(y))
+                   + '-'
+                   + ep.getEnemyPositionXToString() + '-'
+                   + ep.getEnemyPositionYToString() + '-'
+                   + currentAction;
+    return comb;
+  }
+
+  public static String getCurrentShotComb(EnemyPosition ep, int currentAction, double distance) {
+    String comb =  ep.getEnemyPositionXToString() + '-'
+									+ ep.getEnemyPositionYToString() + '-'
+                  + String.valueOf(Util.quantitazeValue(distance)) + '-'
+									+ currentAction;
+    return comb;
   }
 }
