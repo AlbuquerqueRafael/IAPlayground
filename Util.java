@@ -1,4 +1,4 @@
-package teste;
+package almostNothing;
 import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -66,7 +66,7 @@ public class Util {
   }
 
   public static int quantitazeValue(double value) {
-    return (int) (value / 100.0);
+    return (int) (value / 10.0);
   }
 
   public static String getCurrentComb(EnemyPosition ep, int currentAction, double x, double y) {
@@ -79,10 +79,11 @@ public class Util {
     return comb;
   }
 
-  public static String getCurrentShotComb(EnemyPosition ep, int currentAction, double distance) {
+  public static String getCurrentShotComb(EnemyPosition ep, int currentAction, double distance, double radarHeading) {
     String comb =  ep.getEnemyPositionXToString() + '-'
 									+ ep.getEnemyPositionYToString() + '-'
                   + String.valueOf(Util.quantitazeValue(distance)) + '-'
+                  + String.valueOf((int) radarHeading) + '-'
 									+ currentAction;
     return comb;
   }

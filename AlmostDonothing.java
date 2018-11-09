@@ -1,4 +1,4 @@
-package teste;
+package almostNothing;
 import robocode.*;
 import java.lang.Math;
 import java.util.Random;
@@ -6,18 +6,19 @@ import java.util.Map;
 import java.util.List;
 import java.lang.Number;
 import java.util.HashMap;
-import teste.EnemyPosition;
-import teste.SaveAndLoad;
-import teste.Util;
-import teste.UtilActions;
+import almostNothing.EnemyPosition;
+import almostNothing.SaveAndLoad;
+import almostNothing.Util;
+import almostNothing.UtilActions;
+import static robocode.util.Utils.normalRelativeAngleDegrees;
 
-public class Donothing extends AdvancedRobot {
+public class AlmostDonothing extends AdvancedRobot {
 
 	private int reward = 0;
 	private int rewardShot = 0;
 	private int turnValue = 360;
 	private int numActions = 8;
-	private int numShotActions = 15;
+	private int numShotActions = 18;
 	private boolean explore = false;
 	private int currentAction = 0;
 	private int currentShotAction = 0;
@@ -28,14 +29,18 @@ public class Donothing extends AdvancedRobot {
 	private double currentQValue = 0;
 	private double currentQShotValue = 0;
 	private boolean actionShot = true;
-
+	private EnemyPosition enemyPosition = new EnemyPosition();
+	private double radarHeading = 0;
+	private boolean actionFinished = false;
+	private String oldCombShot;
+	private String oldComb;
 	/**
 	 * run: Donothing's default behavior
 	 */
 	public void run() {
 
 		try {
-			qShotTable = SaveAndLoad.load(getDataFile("qShotTable.txt").toString());
+	//		qShotTable = SaveAndLoad.load(getDataFile("qShotTable.txt").toString());
 			qTable = SaveAndLoad.load(getDataFile("qTable.txt").toString());
 		} catch(Exception e) {
 			System.out.println("error");
@@ -43,7 +48,42 @@ public class Donothing extends AdvancedRobot {
 
 		// Robot main loop
 		while(true) {
-			setTurnRadarLeft(turnValue);
+			turnRadarRight(turnValue);
+			double x = getX();
+			double y = getY();
+			// double distance = Math.sqrt(Math.pow(x-enemyPosition.getEnemyPositionX(), 2)
+			// 														+Math.pow(y-enemyPosition.getEnemyPositionY(), 2));
+			// String combShot = Util.getCurrentShotComb(enemyPosition, currentShotAction, distance, radarHeading);
+			String comb = Util.getCurrentComb(enemyPosition, currentAction, x, y);
+
+			if (actionTime) {
+				this.actionTime = false;
+			//	double rH = radarHeading;
+
+				// oldCombShot = Util.getCurrentShotComb(enemyPosition, currentShotAction, distance, rH);
+				oldComb = Util.getCurrentComb(enemyPosition, currentAction, x, y);
+
+				// currentShotAction = getAction(oldCombShot, qShotTable, numShotActions);
+				currentAction = getAction(oldComb, qTable, numActions);
+
+				// currentQShotValue = getCurrentQValue(qShotTable, oldCombShot);
+				currentQValue = getCurrentQValue(qTable, oldComb);
+
+				// rewardShot = 0;
+				reward = 0;
+
+				// this.actionShot = true;
+				// doShotAction(currentShotAction, rH);
+				doAction(currentAction);
+			} else if (this.actionFinished){
+				if (actionShot) {
+					// calculateQLearning(oldCombShot, combShot, currentQShotValue, numShotActions, qShotTable, rewardShot);
+				}
+
+				calculateQLearning(oldComb, comb, currentQValue, numActions, qTable, reward);
+				this.actionTime = true;
+				this.actionFinished = false;
+			}
 			execute();
 		}
 	}
@@ -52,48 +92,14 @@ public class Donothing extends AdvancedRobot {
 	 * onScannedRobot: What to do when you see another robot
 	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
-		double radarHeading = getRadarHeading();
-		setTurnRadarLeft(0);
-		waitFor(new RadarTurnCompleteCondition(this));
-
-		turnValue = 0;
-
-		double angle = Math.toRadians((getHeading() + e.getBearing()) % 360);
+		//radarHeading = getRadarHeading();
+		double absoluteBearing = getHeading() + e.getBearing();
+		double bearingFromGun = normalRelativeAngleDegrees(absoluteBearing - getGunHeading());
 		double x = getX();
 		double y = getY();
-		EnemyPosition enemyPosition = new EnemyPosition(angle, e.getDistance(), x, y);
-		double distance = Math.sqrt(Math.pow(x-enemyPosition.getEnemyPositionX(), 2)
-																+Math.pow(y-enemyPosition.getEnemyPositionY(), 2));
-
-		String combShot = Util.getCurrentShotComb(enemyPosition, currentAction, distance);
-		String comb = Util.getCurrentComb(enemyPosition, currentAction, x, y);
-
-		if (actionTime) {
-			currentShotAction = getAction(combShot, qShotTable, numShotActions);
-			currentAction = getAction(comb, qTable, numActions);
-
-			combShot = Util.getCurrentShotComb(enemyPosition, currentAction, distance);
-			comb = Util.getCurrentComb(enemyPosition, currentAction, x, y);
-
-			currentQShotValue = getCurrentQValue(qShotTable, combShot);
-			currentQValue = getCurrentQValue(qTable, comb);
-
-			rewardShot = 0;
-			reward = 0;
-			
-			this.actionShot = true;
-			doShotAction(currentShotAction, radarHeading);
-			doAction(currentAction);
-			this.actionTime = false;
-		} else {
-			if (actionShot) {
-				calculateQLearning(combShot, currentQShotValue, numShotActions, qShotTable, rewardShot);
-			}
-
-			calculateQLearning(comb, currentQValue, numActions, qTable, reward);
-			this.actionTime = true;
-			turnValue = 360;
-		}
+		double angle = Math.toRadians((getHeading() + e.getBearing()) % 360);
+		radarHeading = bearingFromGun;
+		this.enemyPosition = new EnemyPosition(angle, e.getDistance(), x, y);
 	}
 
 	public double getCurrentQValue(HashMap<String, Double> map, String comb) {
@@ -111,25 +117,13 @@ public class Donothing extends AdvancedRobot {
 
 
 	public void	onRoundEnded(RoundEndedEvent event) {
-		SaveAndLoad.save(getDataFile("qShotTable.txt").toString(), qShotTable);
+		//SaveAndLoad.save(getDataFile("qShotTable.txt").toString(), qShotTable);
 		SaveAndLoad.save(getDataFile("qTable.txt").toString(), qTable);
 
 	}
 
-
-	/**
-	 * onHitByBullet: What to do when you're hit by a bullet
-	 */
-	public void onHitByBullet(HitByBulletEvent e) {
-		reward -= 3;
-	}
-
-	public void OnHitRobot(HitRobotEvent evnt) {
-		reward -= 3;
-	}
-
 	public int getAction(String comb, HashMap<String, Double> table, int nA) {
-		if (explore) {
+		if (explore || nA == 8) {
 			return Util.getRandom(nA);
 		} else {
 			return Util.getBestAction(table, comb, nA);
@@ -145,47 +139,19 @@ public class Donothing extends AdvancedRobot {
 		firePower = data[0];
 		nextGunHeading = data[1];
 
-		if ((radarHeading + nextGunHeading) > 360) { // Ex: Current radar: 355
-			 																					 //     Next Gun Heading: 15(Move 15 degrees)
-																								 //			New angle = 370 = 10 degrees
-			radarHeading = 360 - radarHeading + nextGunHeading;
-		} else if ((radarHeading + nextGunHeading) < 0) { // Same example. But imagine this time a next Gun Heading negative
-			radarHeading = radarHeading + nextGunHeading + 360;
-		} else {
-			radarHeading += nextGunHeading;
-		}
+		double interval = radarHeading + nextGunHeading;
+		setTurnGunRight(interval);
+		waitFor(new GunTurnCompleteCondition(this));
 
-
-		double interval = gunHeading - radarHeading;
-		executeTurnGun(interval, gunHeading, radarHeading);
 		Bullet bullet = setFireBullet(firePower);
 
 		if (bullet == null) {
-		//	turnValue = 360;
+			turnValue = 360;
 			this.actionShot = false;
+			this.actionFinished = true;
 		}
 
 	//
-	}
-
-	private void executeTurnGun(double interval, double currentHeading, double nextHeading) {
-		if (interval > 0) {
-			if (interval > 180) {
-				setTurnGunRight((360 - currentHeading + nextHeading));
-			} else {
-				setTurnGunLeft(interval);
-			}
-			waitFor(new GunTurnCompleteCondition(this));
-		} else {
-			interval = interval*(-1);
-			if (interval > 180) {
-				setTurnGunLeft((360 - nextHeading + currentHeading));
-			} else {
-				setTurnGunRight(interval);
-			}
-
-			waitFor(new GunTurnCompleteCondition(this));
-		}
 	}
 
 	public void doAction(int action) {
@@ -214,7 +180,7 @@ public class Donothing extends AdvancedRobot {
 		executeTurn(interval, currentHeading, nextHeading);
 		setAhead(100);
 		waitFor(new MoveCompleteCondition(this));
-		turnValue = 360;
+		this.actionFinished = true;
 	}
 
 	private void executeTurn(double interval, double currentHeading, double nextHeading) {
@@ -237,31 +203,40 @@ public class Donothing extends AdvancedRobot {
 		}
 	}
 
-	public void calculateQLearning(String comb, double currentQValue, int nA,
+	public void calculateQLearning(String oldComb, String comb, double currentQValue, int nA,
 																 HashMap<String, Double> table, double rew) {
 		double max = Util.getMaxQ(table, comb, nA);
 		double deltaQ = 0.1 * (rew + 0.9*max - currentQValue);
 		double qLearning = currentQValue + deltaQ;
-		table.put(comb, qLearning);
+		table.put(oldComb, qLearning);
 	}
 
 	public void onBulletHitBullet(BulletHitBulletEvent event) {
 		rewardShot += 3;
-	//	turnValue = 360;
+		this.actionFinished = true;
 	}
 
 	public void onBulletHit(BulletHitEvent event) {
 		rewardShot += 3;
-	//	turnValue = 360;
+		this.actionFinished = true;
 	}
 
 	public void onBulletMissed(BulletMissedEvent event) {
 		rewardShot -= 3;
-	//	turnValue = 360;
+		this.actionFinished = true;
 	}
 
 	public void onHitWall(HitWallEvent e) {
 		reward -= 3;
 	}
+
+	public void onHitByBullet(HitByBulletEvent e) {
+		reward -= 3;
+	}
+
+	public void OnHitRobot(HitRobotEvent evnt) {
+		reward -= 3;
+	}
+
 
 }
