@@ -16,7 +16,7 @@ public class Util {
     for(int i = 0; i < numActions; i++) {
       String auxComb = comb;
       auxComb = comb + '~' + i;
-      
+
       if (qTable.get(auxComb) == null) {
         qTable.put(auxComb, 0.0);
       } else {
@@ -72,6 +72,25 @@ public class Util {
                    + String.valueOf(Util.quantitazeValue(y))
                    + '~'
                    + String.valueOf(q_absbearing) + '~'
+                   + String.valueOf(qdistancetoenemy);
+    return comb;
+  }
+
+  public static String getCurrentCombWithEnemy(EnemyPosition enemy, double x, double y) {
+    String comb =  String.valueOf(Util.quantitazeValue(x)) + '~'
+                   + String.valueOf(Util.quantitazeValue(y))
+                   + '~'
+                   + String.valueOf(Util.quantitazeValue(enemy.getEnemyPositionX())) + '~'
+                   + String.valueOf(Util.quantitazeValue(enemy.getEnemyPositionY()));
+    return comb;
+  }
+
+  public static String getCurrentCombHeading(int qdistancetoenemy, int q_absbearing, double x, double y, int heading) {
+    String comb =  String.valueOf(Util.quantitazeValue(x)) + '~'
+                   + String.valueOf(Util.quantitazeValue(y))
+                   + '~'
+                   + String.valueOf(q_absbearing) + '~'
+                   + String.valueOf(heading) + '~'
                    + String.valueOf(qdistancetoenemy);
     return comb;
   }

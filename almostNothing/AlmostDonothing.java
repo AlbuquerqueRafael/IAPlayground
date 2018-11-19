@@ -18,6 +18,7 @@ public class AlmostDonothing extends AdvancedRobot {
 	private double reward = 0;
 	private double rewardShot = 0;
 	private int turnValue = 360;
+	//be careful
 	private int numActions = 4;
 	private int numShotActions = 7;
 	private boolean explore = false;
@@ -45,6 +46,7 @@ public class AlmostDonothing extends AdvancedRobot {
 	private double getVelocity = 0;
 	private double getBearing = 0;
 	private int qdistancetoenemy;
+	private int heading = 0;
 	// private List<String> combShot = new ArrayList<String>();
 	// private List<String> futureCombShot = new ArrayList<String>();
 	private double x = 0;
@@ -64,6 +66,7 @@ public class AlmostDonothing extends AdvancedRobot {
 		while(true) {
 			turnGunRight(360);
 			String comb = Util.getCurrentComb(qdistancetoenemy, q_absbearing, x, y);
+			// String comb = Util.getCurrentCombWithEnemy(this.enemyPosition, x, y);
 		//	AIShot(comb);
 			AIMoviment(comb);
 		}
@@ -87,6 +90,10 @@ public class AlmostDonothing extends AdvancedRobot {
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
+		if (e.getEnergy() == 0) {
+			this.actionFinished = false;
+		}
+		heading = Util.quantize_angle(getHeading());
 		absoluteBearing = getHeading() + e.getBearing();
 		bearingFromGun = normalRelativeAngleDegrees(absoluteBearing - getGunHeading());
 		this.getVelocity = e.getVelocity();
@@ -98,9 +105,7 @@ public class AlmostDonothing extends AdvancedRobot {
 		this.enemyPosition = new EnemyPosition(angle, e.getDistance(), x, y);
 		double absbearing=Util.absoluteBearing((float)x,(float)y,this.enemyPosition);
 		q_absbearing=Util.quantize_angle(absbearing);
-		// if(qdistancetoenemy==1){firePower = 3;}
-		// if(qdistancetoenemy==2){firePower = 2;}
-		// if(qdistancetoenemy>2){firePower = 1;}
+
 	}
 
 	public double getCurrentQValue(HashMap<String, Double> map, String comb, int currentAction) {
@@ -120,7 +125,7 @@ public class AlmostDonothing extends AdvancedRobot {
 
 	public void	onRoundEnded(RoundEndedEvent event) {
 		//SaveAndLoad.save(getDataFile("qShotTable.txt").toString(), qShotTable);
-		SaveAndLoad.save(getDataFile("qTable.txt").toString(), qTable);
+		// SaveAndLoad.save(getDataFile("qTable.txt").toString(), qTable);
 	}
 
 	public int getAction(String comb, HashMap<String, Double> table, int nA) {
@@ -155,6 +160,18 @@ public class AlmostDonothing extends AdvancedRobot {
 		this.actionShot = true;
 	}
 
+	// public void doAction(int action) {
+	// 	double currentHeading = getHeading();
+	// 	double nextHeading = 0;
+	//
+	// 	nextHeading = nextHeading + (action)*30;
+	//
+	// 	double interval = currentHeading - nextHeading;
+	// 	executeTurn(interval, currentHeading, nextHeading);
+	// 	setAhead(200);
+	// 	this.actionFinished = true;
+	// }
+
 	public void doAction(int action) {
 		double currentHeading = getHeading();
 		double nextHeading = 0;
@@ -179,7 +196,7 @@ public class AlmostDonothing extends AdvancedRobot {
 			moveDirection *= 1;
 
 		setTurnRight(getBearing + 90);
-		setAhead(300 * moveDirection);
+		setAhead(250 * moveDirection);
 	}
 
 	private void moveClockWise() {
@@ -188,7 +205,7 @@ public class AlmostDonothing extends AdvancedRobot {
 			moveDirection1 *= 1;
 
 		setTurnRight(getBearing + 90);
-		setAhead(200 * moveDirection1);
+		setAhead(250 * moveDirection1);
 	}
 
 	private void moveAntiClockWiseSoftly() {
